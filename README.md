@@ -9,7 +9,7 @@ An alternative to the Manus.im
 - [ ] Multi-agents: https://github.com/geekan/MetaGPT
 - [ ] MCP
 - [ ] Artifacts
-- [ ] LangGraph
+- [ ] OpenAI Agent SDK: https://openai.github.io/openai-agents-python/
 
 ## Frontend Tech Stack
 
