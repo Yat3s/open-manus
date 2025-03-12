@@ -3,13 +3,12 @@
 An alternative to the Manus.im
 
 ## Key References
-
+- [ ] OpenAI Agent SDK: https://openai.github.io/openai-agents-python/
 - [ ] Compute use: https://github.com/browser-use/browser-use
 - [ ] Sandbox: https://github.com/vndee/llm-sandbox
-- [ ] Multi-agents: https://github.com/geekan/MetaGPT
 - [ ] MCP
 - [ ] Artifacts
-- [ ] OpenAI Agent SDK: https://openai.github.io/openai-agents-python/
+
 
 ## Frontend Tech Stack
 
