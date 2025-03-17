@@ -23,10 +23,18 @@ class DeepResearchManager:
             search_plan = await self._plan_searches(query)
             search_results = await self._perform_searches(search_plan)
             report = await self._write_report(query, search_results)
+            print(report.image_requests)
+
+            processed_report = report.markdown_report
+            for i, img_request in enumerate(report.image_requests):
+                image_url = await self._generate_image(img_request.search_query)
+                markdown_image = f"\n![{img_request.caption}]({image_url})\n"
+                placeholder = f"{{{{{img_request.position}}}}}"
+                processed_report = processed_report.replace(placeholder, markdown_image)
 
             return {
                 "trace_id": trace_id,
-                "report": report.markdown_report,
+                "report": processed_report,
                 "summary": report.short_summary,
                 "follow_up_questions": report.follow_up_questions,
             }
@@ -72,3 +80,7 @@ class DeepResearchManager:
             pass
 
         return result.final_output_as(ReportData)
+
+    async def _generate_image(self, search_query: str) -> str:
+        # TODO: Generate image from search query
+        return "https://xmodel.blob.core.windows.net/predictions/output/6258ce40-7260-4662-8e9e-8d9dde4cfbba.png"
