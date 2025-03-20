@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 
 from agents import Agent
+from ..tools.chart_tool import ChartRequest
 
 PROMPT = (
     "You are a senior researcher tasked with writing a cohesive report for a research query. "
@@ -12,26 +13,21 @@ PROMPT = (
     "The final output should be in markdown format, and it should be lengthy and detailed. Aim "
     "for 5-10 pages of content, at least 1000 words.\n\n"
     "Important: When writing the report, you should:\n"
-    "1. Include relevant images by searching for them using search terms related to your content.\n"
-    "2. For each image you want to include:\n"
-    "   - Add a placeholder like {{image_1}}, {{image_2}} etc. in the markdown_report where you want the image to appear\n"
-    "   - Add an entry to the images list with:\n"
-    "     * A search query to find a relevant image\n"
-    "     * A descriptive caption for the image\n"
-    "     * The position marker matching the placeholder\n"
-    "3. Make sure the report flows naturally with text and images integrated together."
+    "1. Include data visualizations (charts) where appropriate:\n"
+    "   - Add a placeholder like {{chart_1}}, {{chart_2}} etc. in the markdown_report\n"
+    "   - Add an entry to the charts list with chart data in Markdown table format, for example:\n"
+    "     | Category | Value | Description |\n"
+    "     |----------|--------|-------------|\n"
+    "     | Item 1   | 100    | Detail 1    |\n"
+    "     | Item 2   | 200    | Detail 2    |\n"
+    "   - Each chart request should include:\n"
+    "     * Chart type (bar, line, pie, etc.)\n"
+    "     * Chart title\n"
+    "     * Data in Markdown table format\n"
+    "     * A brief description of what the chart should show\n"
+    "     * The position marker (e.g., chart_1) matching the placeholder\n"
+    "2. Make sure the report flows naturally with text and charts integrated together."
 )
-
-
-class ImageRequest(BaseModel):
-    search_query: str
-    """The search query to find this image"""
-
-    caption: str
-    """Caption to display under the image"""
-
-    position: str
-    """Where to place the image in the report (e.g. {{image_1}})"""
 
 
 class ReportData(BaseModel):
@@ -39,13 +35,13 @@ class ReportData(BaseModel):
     """A short 2-3 sentence summary of the findings."""
 
     markdown_report: str
-    """The final report with image placeholders"""
+    """The final report"""
 
     follow_up_questions: list[str]
     """Suggested topics to research further"""
 
-    image_requests: list[ImageRequest]
-    """List of requested images and their placement information"""
+    chart_requests: list[ChartRequest]
+    """List of requested charts and their placement information"""
 
 
 writer_agent = Agent(

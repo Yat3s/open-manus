@@ -2,17 +2,24 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .deep_research.routes import deep_research_router
 from contextlib import asynccontextmanager
+from rich.console import Console
+from rich import print as rprint
+
+console = Console()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("========================")
-    print("🚀 Deep Research API is starting...")
-    print("========================")
+    console.rule("[bold blue]Deep Research API Starting")
+    rprint("[bold green]🚀 Initializing services...")
+    rprint("[bold yellow]⚙️  Loading configurations...")
+    rprint("[bold green]✨ Initialization completed")
+
     yield
-    print("========================")
-    print("🚀 Deep Research API has been stopped")
-    print("========================")
+
+    console.rule("[bold blue]Deep Research API Stopping")
+    rprint("[bold red]🛑 Shutting down services...")
+    rprint("[bold green]✅ Cleanup completed")
 
 
 version = "v1"
