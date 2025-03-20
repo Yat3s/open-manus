@@ -2,7 +2,7 @@ import { z } from "zod";
 import axios from "axios";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
-const REQUEST_TIMEOUT = 120000;
+const REQUEST_TIMEOUT = 300000;
 
 const ResearchResponse = z.object({
   trace_id: z.string(),
