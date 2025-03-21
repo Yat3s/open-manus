@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import MarkdownPreviewer from "./markdown-previewer";
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Textarea } from "~/components/ui/textarea";
+import html2pdf from "html-to-pdf-js";
 
 type Research = {
   trace_id: string;
@@ -19,6 +20,7 @@ const DeepResearch = () => {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [research, setResearch] = useState<Research | null>(null);
+  const researchContentRef = useRef<HTMLDivElement>(null);
 
   const { mutateAsync: getResearch } = api.deepResearch.getResearch.useMutation(
     {
@@ -31,6 +33,75 @@ const DeepResearch = () => {
     setIsLoading(true);
     const research = await getResearch({ prompt: inputText });
     setResearch(research);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!researchContentRef.current) return;
+
+    try {
+      const content = researchContentRef.current;
+      const imgLinks = content.getElementsByTagName("img");
+      const imgPromises = [];
+
+      for (let i = 0; i < imgLinks.length; i++) {
+        const img = imgLinks[i];
+        if (!img) continue;
+
+        const promise = new Promise<void>((resolve) => {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          const image = new Image();
+
+          image.crossOrigin = "anonymous";
+          image.src = img.src || "";
+
+          image.onload = () => {
+            canvas.width = image.width;
+            canvas.height = image.height;
+            if (ctx) {
+              ctx.drawImage(image, 0, 0);
+              const base64 = canvas.toDataURL("image/png");
+              img.src = base64;
+              resolve();
+            }
+          };
+
+          image.onerror = () => {
+            console.error("Failed to load image:", img.src);
+            resolve();
+          };
+        });
+
+        imgPromises.push(promise);
+      }
+
+      await Promise.all(imgPromises);
+
+      const element = researchContentRef.current;
+      const opt = {
+        margin: 10,
+        filename: "research.pdf",
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          windowWidth: 1024,
+          useCORS: true,
+        },
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait" as "portrait" | "landscape",
+        },
+        pagebreak: {
+          mode: ["avoid-all"],
+          before: ".page-break",
+        },
+      };
+
+      await html2pdf().set(opt).from(element).save();
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+    }
   };
 
   return (
@@ -73,38 +144,35 @@ const DeepResearch = () => {
       {research && (
         <>
           <Card>
-            <CardHeader>
-              <CardTitle>Research Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{research.summary}</p>
+            <CardContent className="space-y-8 p-8" ref={researchContentRef}>
+              <div>
+                <h2 className="mb-4 text-2xl font-semibold">
+                  Research Summary
+                </h2>
+                <p>{research.summary}</p>
+              </div>
+
+              <div>
+                <MarkdownPreviewer text={research.report} />
+              </div>
+
+              <div>
+                <h2 className="mb-4 text-2xl font-semibold">
+                  Follow-up Questions
+                </h2>
+                <ul className="list-disc space-y-2 pl-4">
+                  {research.follow_up_questions.map((question, index) => (
+                    <li key={index}>{question}</li>
+                  ))}
+                </ul>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Detailed Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MarkdownPreviewer text={research.report} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Follow-up Questions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-disc space-y-2 pl-4">
-                {research.follow_up_questions.map((question, index) => (
-                  <li key={index}>{question}</li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          <div className="text-center text-sm text-gray-500">
-            Trace ID: {research.trace_id}
+          <div className="flex justify-center">
+            <Button onClick={handleDownloadPDF} variant="outline">
+              Download PDF Report
+            </Button>
           </div>
         </>
       )}
