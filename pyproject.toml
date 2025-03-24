@@ -1,0 +1,14 @@
+[project]
+name = "core"
+version = "0.1.0"
+description = "An alternative to Manus.im"
+dependencies = [
+    "rich>=13.9.4",
+    "pandas>=2.2.3",
+    "openai-agents>=0.0.6",
+    "fastapi[standard]>=0.115.12",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
