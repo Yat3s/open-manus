@@ -111,14 +111,10 @@ class DeepResearchManager:
     async def _write_report(self, query: str, search_results: list[str]) -> ReportData:
         logger.info("Writing report")
         input = f"Original query: {query}\nSummarized search results: {search_results}"
-        result = Runner.run_streamed(
+        result = await Runner.run(
             writer_agent,
             input,
         )
-
-        async for event in result.stream_events():
-            if hasattr(event, "content") and event.content:
-                logger.debug(f"Writer progress: {event.content[:100]}...")
 
         logger.info("Report writing completed")
         return result.final_output_as(ReportData)
