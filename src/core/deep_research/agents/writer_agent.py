@@ -1,8 +1,14 @@
 # Agent used to synthesize a final report from the individual summaries.
 from pydantic import BaseModel
-
-from agents import Agent
+from openai import AsyncOpenAI
+from ...config import Config
+from agents import Agent, OpenAIChatCompletionsModel
 from ..tools.chart_tool import ChartRequest
+
+external_client = AsyncOpenAI(
+    base_url=Config.EXTERNAL_API_BASE_URL,
+    api_key=Config.EXTERNAL_API_KEY,
+)
 
 PROMPT = (
     "You are a senior researcher tasked with writing a cohesive report for a research query. "
@@ -28,6 +34,7 @@ PROMPT = (
     "     * The position marker (e.g., chart_1) matching the placeholder\n"
     "2. Make sure the report flows naturally with text and charts integrated together."
 )
+MODEL_NAME = "o3-mini"
 
 
 class ReportData(BaseModel):
@@ -47,6 +54,6 @@ class ReportData(BaseModel):
 writer_agent = Agent(
     name="WriterAgent",
     instructions=PROMPT,
-    model="gpt-4o",
+    model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=external_client),
     output_type=ReportData,
 )
