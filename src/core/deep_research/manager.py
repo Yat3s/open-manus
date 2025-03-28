@@ -10,8 +10,8 @@ from agents import Runner, custom_span, gen_trace_id, trace
 from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
 from .agents.search_agent import search_agent
 from .agents.writer_agent import ReportData, writer_agent
+from .agents.browser_agent import browser_agent
 from .tools.chart_tool import ChartRequest, generate_chart
-from .tools.browser_tool import BrowserTool
 from .printer import Printer
 
 logging.basicConfig(
@@ -24,7 +24,6 @@ class DeepResearchManager:
     def __init__(self):
         self.console = Console()
         self.printer = Printer(self.console)
-        self.browser_tool = BrowserTool()
 
     async def run(self, query: str) -> dict:
         trace_id = gen_trace_id()
@@ -34,9 +33,8 @@ class DeepResearchManager:
         with trace("Research trace", trace_id=trace_id):
             search_plan = await self._plan_searches(query)
             search_results = await self._perform_searches(search_plan)
-            browser_results = await self._browse(query)
-            combined_results = search_results + browser_results
-            report = await self._write_report(query, combined_results)
+            browser_results = await self._browse_web(query)
+            report = await self._write_report(query, search_results + browser_results)
 
             logger.info(
                 f"Report generated with {len(report.chart_requests)} chart requests"
@@ -86,11 +84,11 @@ class DeepResearchManager:
     async def _perform_searches(self, search_plan: WebSearchPlan) -> list[str]:
         logger.info(f"Performing {len(search_plan.searches)} searches")
         with custom_span("Search the web"):
-            tasks = [
+            search_tasks = [
                 asyncio.create_task(self._search(item)) for item in search_plan.searches
             ]
             results = []
-            for task in asyncio.as_completed(tasks):
+            for task in asyncio.as_completed(search_tasks):
                 result = await task
                 if result is not None:
                     results.append(result)
@@ -135,14 +133,17 @@ class DeepResearchManager:
                 logger.error(f"Error generating chart: {e}", exc_info=True)
                 return None
 
-    async def _browse(self, task: str) -> list[str]:
-        """Use the browser tool to execute a task and return a list of structured results"""
-        logger.info(f"Executing browse task: {task}")
+    async def _browse_web(self, query: str) -> list[str]:
+        """Use the browser agent to search the web and return results"""
+        logger.info(f"Executing browse task: {query}")
         try:
             with custom_span("Browse the web"):
-                result = await self.browser_tool.browse(task)
+                result = await Runner.run(
+                    browser_agent,
+                    f"Search query: {query}",
+                )
                 logger.info("Browse task completed")
-                return result
+                return [str(result.final_output)]
         except Exception as e:
             logger.error(f"Browse task failed: {e}", exc_info=True)
             return []
