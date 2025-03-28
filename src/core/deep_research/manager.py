@@ -68,7 +68,6 @@ class DeepResearchManager:
             logger.info("Research completed successfully")
             return {
                 "trace_id": trace_id,
-                "browser_results": browser_results,
                 "report": processed_report,
                 "summary": report.short_summary,
                 "follow_up_questions": report.follow_up_questions,
