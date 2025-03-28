@@ -11,6 +11,7 @@ from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
 from .agents.search_agent import search_agent
 from .agents.writer_agent import ReportData, writer_agent
 from .tools.chart_tool import ChartRequest, generate_chart
+from .tools.browser_tool import BrowserTool
 from .printer import Printer
 
 logging.basicConfig(
@@ -23,6 +24,7 @@ class DeepResearchManager:
     def __init__(self):
         self.console = Console()
         self.printer = Printer(self.console)
+        self.browser_tool = BrowserTool()
 
     async def run(self, query: str) -> dict:
         trace_id = gen_trace_id()
@@ -32,7 +34,9 @@ class DeepResearchManager:
         with trace("Research trace", trace_id=trace_id):
             search_plan = await self._plan_searches(query)
             search_results = await self._perform_searches(search_plan)
-            report = await self._write_report(query, search_results)
+            browser_results = await self._browse(query)
+            combined_results = search_results + browser_results
+            report = await self._write_report(query, combined_results)
 
             logger.info(
                 f"Report generated with {len(report.chart_requests)} chart requests"
@@ -130,3 +134,15 @@ class DeepResearchManager:
             except Exception as e:
                 logger.error(f"Error generating chart: {e}", exc_info=True)
                 return None
+
+    async def _browse(self, task: str) -> list[str]:
+        """Use the browser tool to execute a task and return a list of structured results"""
+        logger.info(f"Executing browse task: {task}")
+        try:
+            with custom_span("Browse the web"):
+                result = await self.browser_tool.browse(task)
+                logger.info("Browse task completed")
+                return result
+        except Exception as e:
+            logger.error(f"Browse task failed: {e}", exc_info=True)
+            return []
