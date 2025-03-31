@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
+from typing import AsyncGenerator, Dict, Any
 
 from rich.console import Console
 
@@ -70,6 +72,109 @@ class DeepResearchManager:
                 "summary": report.short_summary,
                 "follow_up_questions": report.follow_up_questions,
             }
+
+    async def run_stream(self, query: str) -> AsyncGenerator[str, None]:
+        trace_id = gen_trace_id()
+        logger.info(f"Starting streaming research with trace_id: {trace_id}")
+        logger.info(f"Query: {query}")
+
+        yield self._format_sse_event(
+            {
+                "type": "start",
+                "trace_id": trace_id,
+                "query": query,
+                "message": "Starting research process",
+            }
+        )
+
+        with trace("Research trace", trace_id=trace_id):
+            yield self._format_sse_event(
+                {
+                    "type": "status_update",
+                    "step": "planning",
+                    "message": "Planning search strategy...",
+                }
+            )
+
+            search_plan = await self._plan_searches(query)
+
+            yield self._format_sse_event(
+                {
+                    "type": "plan_complete",
+                    "searches": [
+                        {"query": item.query, "reason": item.reason, "url": item.url}
+                        for item in search_plan.searches
+                    ],
+                    "message": f"Planned {len(search_plan.searches)} searches",
+                }
+            )
+
+            yield self._format_sse_event(
+                {
+                    "type": "status_update",
+                    "step": "searching",
+                    "message": "Executing web search...",
+                }
+            )
+
+            search_results = []
+            for i, item in enumerate(search_plan.searches):
+                yield self._format_sse_event(
+                    {
+                        "type": "search_started",
+                        "search_index": i,
+                        "query": item.query,
+                        "message": f"Searching: {item.query}",
+                    }
+                )
+
+                result = await self._search(item)
+                if result:
+                    search_results.append(result)
+                    yield self._format_sse_event(
+                        {
+                            "type": "search_complete",
+                            "search_index": i,
+                            "query": item.query,
+                            "result_summary": (
+                                result[:100] + "..." if len(result) > 100 else result
+                            ),
+                            "message": f"Search completed: {item.query}",
+                        }
+                    )
+
+            yield self._format_sse_event(
+                {
+                    "type": "status_update",
+                    "step": "writing",
+                    "message": "Writing research report...",
+                }
+            )
+
+            report = await self._write_report(query, search_results)
+
+            processed_report = report.markdown_report
+
+            for i, chart_request in enumerate(report.chart_requests):
+                chart_url = await self._generate_chart(chart_request)
+                markdown_chart = f"\n![{chart_request.title}]({chart_url})\n"
+                placeholder = f"{{{{{chart_request.position}}}}}"
+
+                if placeholder in processed_report:
+                    processed_report = processed_report.replace(
+                        placeholder, markdown_chart
+                    )
+
+            final_result = {
+                "type": "complete",
+                "trace_id": trace_id,
+                "report": processed_report,
+                "summary": report.short_summary,
+                "follow_up_questions": report.follow_up_questions,
+                "message": "Research completed",
+            }
+
+            yield self._format_sse_event(final_result)
 
     async def _plan_searches(self, query: str) -> WebSearchPlan:
         logger.info("Planning searches")
@@ -147,3 +252,7 @@ class DeepResearchManager:
         except Exception as e:
             logger.error(f"Browse task failed: {e}", exc_info=True)
             return []
+
+    def _format_sse_event(self, data: Dict[str, Any]) -> str:
+        json_data = json.dumps(data, ensure_ascii=False)
+        return f"data: {json_data}\n\n"
