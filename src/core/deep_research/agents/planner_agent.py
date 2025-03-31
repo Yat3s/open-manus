@@ -15,6 +15,9 @@ class WebSearchItem(BaseModel):
     query: str
     "The search term to use for the web search."
 
+    url: str
+    "The URL to use for the web search."
+
 
 class WebSearchPlan(BaseModel):
     searches: list[WebSearchItem]
