@@ -7,6 +7,9 @@ from agents import (
     function_tool,
 )
 from browser_use import Agent as BrowserAgent, Browser
+from datetime import datetime
+
+current_time = datetime.now().strftime("%Y/%m/%d")
 
 INSTRUCTIONS = """
     You are a browser agent. Your goal is to fetch detailed information based on the user's query.
@@ -14,6 +17,7 @@ INSTRUCTIONS = """
     1. Use the `browser_search` tool to get information about the user's query.
     2. Save the retrieved information in the context.
     3. Present the information in a structured format to the user.
+    # Data cutoff date: {current_time}
 """
 
 

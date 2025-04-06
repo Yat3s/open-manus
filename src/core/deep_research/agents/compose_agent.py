@@ -1,17 +1,14 @@
 # Agent used to synthesize a final report from the individual summaries.
 from pydantic import BaseModel
-from openai import AsyncOpenAI
-from ...config import Config
-from agents import Agent, OpenAIChatCompletionsModel
+from agents import Agent
 from ..tools.chart_tool import ChartRequest
+from ..model import ComposeModel
+from datetime import datetime
 
-external_client = AsyncOpenAI(
-    base_url=Config.EXTERNAL_API_BASE_URL,
-    api_key=Config.EXTERNAL_API_KEY,
-)
-
+current_time = datetime.now().strftime("%Y/%m/%d")
 PROMPT = (
     "You are a senior researcher tasked with writing a cohesive report for a research query. "
+    "Current time: {current_time}\n"
     "You will be provided with the original query, and some initial research done by a research "
     "assistant.\n"
     "You should first come up with an outline for the report that describes the structure and "
@@ -34,8 +31,24 @@ PROMPT = (
     "     * The position marker (e.g., chart_1) matching the placeholder\n"
     "2. Make sure the report flows naturally with text and charts integrated together."
 )
-MODEL_NAME = "o3-mini"
 
+# PROMPT = (
+# """
+# Task Instructions:
+# You are a senior secondary market buy-side analyst tasked with drafting an in-depth, rigorously structured investment research report on company based on all collected public information and data.
+# Overall Report Framework and Content Requirements:
+# Analysis of Company Background and Management
+# Analysis of the Company's Core Business
+# Analysis of the Current Competitive Landscape and Industry Situation
+# Analysis of the Company's Financial Revenue (including revenue growth and profit margins)
+
+# General Tips:
+# The report should be logically clear and data-rich, providing strong support for investment decision-making (for reference and learning purposes only, and not to be construed as investment advice).
+# All data, figures, and interview references must clearly indicate their specific public sources.
+# Employ rigorous data analysis methods and logical reasoning throughout the report drafting process. If estimations are necessary, please specify the estimation methods and the related uncertainties.
+# To enhance readability, use tables and charts as much as possible to present the data.
+# """
+# )
 
 class ReportData(BaseModel):
     short_summary: str
@@ -43,7 +56,7 @@ class ReportData(BaseModel):
 
     markdown_report: str
     """The final report"""
-
+    
     follow_up_questions: list[str]
     """Suggested topics to research further"""
 
@@ -51,9 +64,9 @@ class ReportData(BaseModel):
     """List of requested charts and their placement information"""
 
 
-writer_agent = Agent(
-    name="WriterAgent",
+compose_agent = Agent(
+    name="Compose Agent",
     instructions=PROMPT,
-    model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=external_client),
+    model=ComposeModel.get_model(),
     output_type=ReportData,
 )

@@ -10,11 +10,13 @@ from rich.console import Console
 from agents import Runner, custom_span, gen_trace_id, trace
 
 from .agents.planner_agent import WebSearchItem, WebSearchPlan, planner_agent
-from .agents.search_agent import search_agent
-from .agents.writer_agent import ReportData, writer_agent
+from .agents.research_agent import research_agent
+from .agents.compose_agent import ReportData, compose_agent
 from .agents.browser_agent import browser_agent
 from .tools.chart_tool import ChartRequest, generate_chart
 from .printer import Printer
+from datetime import datetime
+yyyymm = datetime.now().strftime("%Y/%m")
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -180,7 +182,7 @@ class DeepResearchManager:
         logger.info("Planning searches")
         result = await Runner.run(
             planner_agent,
-            f"Query: {query}",
+            f"Query: {query}, Data cutoff date: {yyyymm}",
         )
         plan = result.final_output_as(WebSearchPlan)
         logger.info(f"Search plan created with {len(plan.searches)} searches")
@@ -206,7 +208,7 @@ class DeepResearchManager:
         input = f"Search term: {item.query}\nReason for searching: {item.reason}"
         try:
             result = await Runner.run(
-                search_agent,
+                research_agent,
                 input,
             )
             logger.info(f"Search completed for: {item.query}")
@@ -219,7 +221,7 @@ class DeepResearchManager:
         logger.info("Writing report")
         input = f"Original query: {query}\nSummarized search results: {search_results}"
         result = await Runner.run(
-            writer_agent,
+            compose_agent,
             input,
         )
 
