@@ -11,18 +11,15 @@ external_client = AsyncOpenAI(
 )
 
 class PlannerModel:
-    MODEL_NAME = "o3-mini"
+    MODEL_NAME = "gpt-4.1"
     DESCRIPTION = "用于投资研究报告规划的高级模型"
     
     @classmethod
     def get_model(cls):
-        return OpenAIChatCompletionsModel(
-            model=cls.MODEL_NAME, 
-            openai_client=external_client
-        )
+        return cls.MODEL_NAME
 
 class ResearchModel:
-    MODEL_NAME = "gpt-4o"
+    MODEL_NAME = "gpt-4.1"
     DESCRIPTION = "用于信息搜索和数据收集的模型"
     
     @classmethod
@@ -35,7 +32,7 @@ class ResearchModel:
         return ModelSettings(tool_choice="required")
 
 class ComposeModel:
-    MODEL_NAME = "o3-mini" 
+    MODEL_NAME = "o3" 
     DESCRIPTION = "用于综合研究结果并生成最终报告的模型"
     
     @classmethod

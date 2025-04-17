@@ -5,12 +5,14 @@ from datetime import datetime
 
 from core.deep_research.model import PlannerModel
 
+search_task_count = 20
+
 current_time = datetime.now().strftime("%Y/%m/%d")
 PROMPT = (
     """
 Task Instructions:
-You are an experienced research analyst responsible for defining the search keywords and information-gathering strategy to prepare an in-depth investment research report on company. Based on the report framework and requirements below, please design a series of precise search keywords, key data indicators, and information sources to ensure that the subsequent search agent can efficiently collect the relevant data and materials.
-
+You are an experienced research analyst responsible for defining the search keywords and information-gathering strategy to prepare an in-depth investment research report on company. Based on the report framework and requirements below, please design ${search_task_count} precise search keywords, key data indicators, and information sources to ensure that the subsequent search agent can efficiently collect the latest relevant data and materials.
+current date is ${current_time}
 Report Framework and Requirements:
 Company background and management analysis
 Analysis of the company’s core business
@@ -36,10 +38,6 @@ class WebSearchItem(BaseModel):
 
     query: str
     "The search term to use for the web search."
-
-    url: str
-    "The URL to use for the web search."
-
 
 class WebSearchPlan(BaseModel):
     searches: list[WebSearchItem]

@@ -56,7 +56,6 @@ async def test_plan_searches(query: str):
             console.print(f"\n[bold]搜索 #{i}[/bold]")
             console.print(f"查询: {search_item.query}")
             console.print(f"原因: {search_item.reason}")
-            console.print(f"URL: {search_item.url if hasattr(search_item, 'url') else '无'}")
             
     except Exception as e:
         console.print(f"[bold red]测试失败: {str(e)}[/bold red]")

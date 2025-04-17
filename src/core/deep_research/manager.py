@@ -37,8 +37,9 @@ class DeepResearchManager:
         with trace("Research trace", trace_id=trace_id):
             search_plan = await self._plan_searches(query)
             search_results = await self._perform_searches(search_plan)
-            browser_results = await self._browse_web(query)
-            report = await self._write_report(query, search_results + browser_results)
+            # browser_results = await self._browse_web(query)
+            # report = await self._write_report(query, search_results + browser_results)
+            report = await self._write_report(query, search_results)
 
             logger.info(
                 f"Report generated with {len(report.chart_requests)} chart requests"
@@ -182,7 +183,7 @@ class DeepResearchManager:
         logger.info("Planning searches")
         result = await Runner.run(
             planner_agent,
-            f"Query: {query}, Data cutoff date: {yyyymm}",
+            f"{query}",
         )
         plan = result.final_output_as(WebSearchPlan)
         logger.info(f"Search plan created with {len(plan.searches)} searches")
