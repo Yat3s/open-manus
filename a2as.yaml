@@ -1,0 +1,254 @@
+manifest:
+  version: "0.1.2"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: yat3s/open-manus
+    source: https://github.com/yat3s/open-manus
+    branch: develop
+    commit: "0cc0162f"
+    scope: [src/core/deep_research/agents/browser_agent.py, src/core/deep_research/agents/compose_agent.py, src/core/deep_research/agents/planner_agent.py,
+      src/core/deep_research/agents/research_agent.py, src/core/deep_research/manager.py, src/core/deep_research/model.py]
+  issued:
+    by: A2AS.org
+    at: '2026-01-26T16:14:12Z'
+  signatures:
+    digest: sha256:jG4yZIDl94LlZuwkQoY-_ts2Eji1DHClP3Yq7uYCrDU
+    key: ed25519:KAe7zrYezVxsnwvZPd7wjOJUesF6vG65ey11lS39HeU
+    sig: ed25519:_ApLj46KmzANxMeGxJN3LZKvvoDR4LWyHp_d_YZwiYONnkACjO0snpWxj6iejQFlpi_kbVIVv-rk8gjQuZFbDQ
+
+agents:
+  browser_agent:
+    type: instance
+    models: [gpt-4.1]
+    tools: [browser_search]
+    params:
+      name: Browser Agent
+      handoff_description: An agent that searches for information online.
+      instructions: [You are a browser agent. Your goal is to fetch detailed information based on the user's query., '# Process:',
+        1. Use the `browser_search` tool to get information about the user's query., 2. Save the retrieved information in
+          the context., 3. Present the information in a structured format to the user., '# Data cutoff date: {current_time}']
+  compose_agent:
+    type: instance
+    models: [ComposeModel.get_model]
+    params:
+      name: Compose Agent
+      output_type: ReportData
+      instructions: ['You are a senior researcher tasked with writing a cohesive report for a research query. Current time:
+          {current_time}', 'You will be provided with the original query, and some initial research done by a research assistant.',
+        'You should first come up with an outline for the report that describes the structure and flow of the report. Then,
+          generate the report and return that as your final output.', 'The final output should be in markdown format, and
+          it should be lengthy and detailed. Aim for 5-10 pages of content, at least 1000 words.', 'Important: When writing
+          the report, you should:', '1. Include data visualizations (charts) where appropriate:', '- Add a placeholder like
+          {{chart_1}}, {{chart_2}} etc. in the markdown_report', '- Add an entry to the charts list with chart data in Markdown
+          table format, for example:', '| Category | Value | Description |', '|----------|--------|-------------|', '| Item
+          1   | 100    | Detail 1    |', '| Item 2   | 200    | Detail 2    |', '- Each chart request should include:', '*
+          Chart type (bar, line, pie, etc.)', '* Chart title', '* Data in Markdown table format', '* A brief description of
+          what the chart should show', '* The position marker (e.g., chart_1) matching the placeholder', 2. Make sure the
+          report flows naturally with text and charts integrated together.]
+  planner_agent:
+    type: instance
+    models: [PlannerModel.get_model]
+    params:
+      name: Planner Agent
+      output_type: WebSearchPlan
+      instructions: ['Task Instructions:', 'You are an experienced research analyst responsible for defining the search keywords
+          and information-gathering strategy to prepare an in-depth investment research report on company. Based on the report
+          framework and requirements below, please design ${search_task_count} precise search keywords, key data indicators,
+          and information sources to ensure that the subsequent search agent can efficiently collect the latest relevant data
+          and materials.', 'current date is ${current_time}', 'Report Framework and Requirements:', Company background and
+          management analysis, Analysis of the company’s core business, Analysis of the current competitive landscape and
+          industry situation, Financial revenue analysis (including revenue growth and profit margins), 'Information Sources
+          to Consider:', Company official website, Annual reports and financial statements from previous years, Reviews on
+          Glassdoor and LinkedIn, 'Industry analysis reports (e.g., Gartner, etc.)', Other public sources, 'General Tips:',
+        'Target data should be as current as possible, with a cutoff date of ${current_time}.', 'Ensure that the search keywords
+          cover multiple dimensions of information (management, business, competition, finance, etc.).', Clearly list the
+          suggested keywords or search directions for each section to support comprehensive data collection.]
+  research_agent:
+    type: instance
+    models: [ResearchModel.get_model]
+    tools: [WebSearchTool]
+    params:
+      name: Research Agent
+      model_settings: ModelSettings(tool_choice=required)
+      instructions: ['Task Instructions:', 'You are an internet information search expert tasked with collecting all publicly
+          available data and information related to company based on the predefined search keywords and directions. Please
+          focus on retrieving materials from the following channels:', 'Required Information Sources:', The company’s official
+          website, Annual reports and financial statements from previous years, Employee or user reviews from Glassdoor and
+          LinkedIn, 'Industry analysis reports (e.g., authoritative reports from Gartner)', Other public sources, 'General
+          Tips:', 'Data and information must be up-to-date, with a cutoff date of ${current_time}.', 'Every piece of data,
+          figure, or comment must clearly indicate its specific public source.', 'If uncertain data is encountered or estimations
+          are needed, please specify the estimation methods and the associated uncertainties.', Organize and summarize the
+          search results to provide detailed reference material for the subsequent report integration.]
+
+models:
+  ComposeModel.get_model:
+    type: function
+    agents: [compose_agent]
+  gpt-4.1:
+    type: default
+    agents: [browser_agent]
+  PlannerModel.get_model:
+    type: function
+    agents: [planner_agent]
+  ResearchModel.get_model:
+    type: function
+    agents: [research_agent]
+
+tools:
+  browser_search:
+    type: decorator
+    agents: [browser_agent]
+    params:
+      description: Searches online for information based on the user's query.
+  WebSearchTool:
+    type: module
+    agents: [research_agent]
+    params:
+      search_context_size: high
+
+imports:
+  Agent: agents.Agent
+  annotations: __future__.annotations
+  Any: typing.Any
+  APIRouter: fastapi.APIRouter
+  AsyncGenerator: typing.AsyncGenerator
+  asyncio: asyncio
+  AsyncOpenAI: openai.AsyncOpenAI
+  BaseModel: pydantic.BaseModel
+  BaseSettings: pydantic_settings.BaseSettings
+  Browser: browser_use.Browser
+  browser_agent: agents.browser_agent.browser_agent
+  BrowserAgent: browser_use.Agent
+  ChartRequest: tools.chart_tool.ChartRequest
+  ChatOpenAI: langchain_openai.ChatOpenAI
+  compose_agent: agents.compose_agent.compose_agent
+  ComposeModel: model.ComposeModel
+  Config: config.Config
+  Console: rich.console.Console
+  custom_span: agents.custom_span
+  datetime: datetime.datetime
+  DeepResearchManager: core.deep_research.manager.DeepResearchManager
+  DeepResearchRequest: core.deep_research.schemas.DeepResearchRequest
+  DeepResearchResponse: core.deep_research.schemas.DeepResearchResponse
+  Dict: typing.Dict
+  Field: pydantic.Field
+  function_tool: agents.function_tool
+  gen_trace_id: agents.gen_trace_id
+  generate_chart: tools.chart_tool.generate_chart
+  io: io
+  json: json
+  logging: logging
+  ModelSettings: agents.model_settings.ModelSettings
+  OpenAIChatCompletionsModel: agents.OpenAIChatCompletionsModel
+  parse: urllib.parse
+  pd: pandas
+  planner_agent: agents.planner_agent.planner_agent
+  PlannerModel: core.deep_research.model.PlannerModel
+  Printer: printer.Printer
+  ReportData: agents.compose_agent.ReportData
+  research_agent: agents.research_agent.research_agent
+  ResearchModel: core.deep_research.model.ResearchModel
+  RichHandler: rich.logging.RichHandler
+  RunContextWrapper: agents.RunContextWrapper
+  Runner: agents.Runner
+  SettingsConfigDict: pydantic_settings.SettingsConfigDict
+  StreamingResponse: fastapi.responses.StreamingResponse
+  trace: agents.trace
+  WebSearchItem: agents.planner_agent.WebSearchItem
+  WebSearchPlan: agents.planner_agent.WebSearchPlan
+  WebSearchTool: agents.WebSearchTool
+
+functions:
+  __init__:
+    type: sync
+    module: src.core.deep_research.manager
+    args: [self]
+  _browse_web:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, query]
+    params:
+      returns: list[str]
+  _format_sse_event:
+    type: sync
+    module: src.core.deep_research.manager
+    args: [self, data]
+    params:
+      returns: str
+  _generate_chart:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, chart_request]
+    params:
+      returns: str
+  _perform_searches:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, search_plan]
+    params:
+      returns: list[str]
+  _plan_searches:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, query]
+    params:
+      returns: WebSearchPlan
+  _search:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, item]
+  _write_report:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, query, search_results]
+    params:
+      returns: ReportData
+  browser_search:
+    type: tool
+    module: src.core.deep_research.agents.browser_agent
+    args: [context, query]
+    params:
+      returns: str
+  create_deep_research:
+    type: async
+    module: src.core.deep_research.routes
+    args: [request]
+    params:
+      returns: DeepResearchResponse
+  create_deep_research_stream:
+    type: async
+    module: src.core.deep_research.routes
+    args: [request]
+    params:
+      returns: StreamingResponse
+  generate_chart:
+    type: sync
+    module: src.core.deep_research.tools.chart_tool
+    args: [chart_request]
+    params:
+      returns: str
+  get_model:
+    type: sync
+    module: src.core.deep_research.model
+    args: [cls]
+  get_model_settings:
+    type: sync
+    module: src.core.deep_research.model
+  parse_markdown_table:
+    type: sync
+    module: src.core.deep_research.tools.chart_tool
+    args: [markdown_table]
+    params:
+      returns: pd.DataFrame
+  run:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, query]
+    params:
+      returns: dict
+  run_stream:
+    type: async
+    module: src.core.deep_research.manager
+    args: [self, query]
+    params:
+      returns: AsyncGenerator
